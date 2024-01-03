@@ -1,0 +1,457 @@
+---
+title: "CHIP Data Exploration"
+execute:
+  echo: false
+author: Anthony Pompetti
+date: "last-modified"
+date-format: long
+format: 
+  revealjs:
+    theme: simple
+    logo: ../Coriell_Logo.png
+    embed-resources: true
+    view-distance: 20
+---
+
+```{r setup, include=FALSE}
+library(data.table)
+library(tidyverse)
+library(plotly)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+here::i_am(".here")
+y <- readRDS(here::here("results/rds/CHIP_sample_table.rds"))
+`%noin%` = Negate(`%in%`)
+```
+
+```{css cssFormat, echo=FALSE, include=FALSE}
+.panel-tabset .nav-item {
+  font-size: 3px
+}
+```
+
+## Batches included in analysis
+```{r}
+y$batch %>% unique
+```
+
+## VAF by binned error facet by error classifier {style="font-size: 16px;"}
+#### minimal: (0 < age_delta <= 1), slight: (1 < age_delta <= 5), moderate: (5 < age_delta <= 10), high: (10 < age_delta <= 20), severe: (20 < age_delta) {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER") {style="font-size: 16px;"}
+```{r, fig.width=20, fig.height=15, out.width="75%", fig.align = 'center'}
+labels <- y %>% distinct(sample_id, .keep_all = T) %>% count(error_classifier)
+
+labeller <- paste0(labels$error_classifier, ": n = ", labels$n)
+names(labeller) <- labels$error_classifier
+labeller <- as_labeller(labeller)
+
+data <- y %>% 
+  filter(
+    impact %noin% c("MODIFIER") &
+      dp > 99 & 
+      vaf > 0.02
+  )
+
+ggplot(
+  data,
+  aes(x = vaf,
+      fill = impact)
+) + 
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  ) +
+  geom_histogram(aes(y=..density..), position = "stack") + 
+  facet_wrap(~error_classifier, ncol = 2, labeller = labeller)
+```
+
+## VAF by binned error facet by error classifier/sample_id {style="font-size: 16px;"}
+#### minimal: (0 < age_delta <= 1), slight: (1 < age_delta <= 5), moderate: (5 < age_delta <= 10), high: (10 < age_delta <= 20), severe: (20 < age_delta) {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER") {style="font-size: 16px;"}
+```{r, fig.width=25, fig.height=15, out.width="75%", fig.align = 'center'}
+labels <- y %>% distinct(sample_id, .keep_all = T) %>% count(error_classifier)
+
+labeller <- paste0(labels$error_classifier, ": n = ", labels$n)
+names(labeller) <- labels$error_classifier
+labeller <- as_labeller(labeller)
+
+data <- y %>% 
+  filter(
+    impact %noin% c("MODIFIER") &
+      dp > 99 & 
+      vaf > 0.02
+  )
+
+ggplot(
+  data,
+  aes(x = vaf,
+      fill = impact)
+) + 
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  ) +
+  geom_histogram(aes(y=..density..), position = "stack") + 
+  facet_wrap(~error_classifier+sample_id)
+```
+
+## VAF by binned error facet by error classifier/gene {style="font-size: 16px;"}
+#### minimal: (0 < age_delta <= 1), slight: (1 < age_delta <= 5), moderate: (5 < age_delta <= 10), high: (10 < age_delta <= 20), severe: (20 < age_delta) {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER") {style="font-size: 16px;"}
+```{r, fig.width=25, fig.height=15, out.width="75%", fig.align = 'center'}
+labels <- y %>% distinct(sample_id, .keep_all = T) %>% count(error_classifier)
+
+labeller <- paste0(labels$error_classifier, ": n = ", labels$n)
+names(labeller) <- labels$error_classifier
+labeller <- as_labeller(labeller)
+
+data <- y %>% 
+  filter(
+    impact %noin% c("MODIFIER") &
+      dp > 99 & 
+      vaf > 0.02
+  )
+
+ggplot(
+  data,
+  aes(x = vaf,
+      fill = impact)
+) + 
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  ) +
+  geom_histogram(aes(y=..density..), position = "stack") + 
+  facet_grid(error_classifier~gene)
+```
+
+## VAF by binned error facet by abserror classifier {style="font-size: 16px;"}
+#### minimal: (0 < age_delta <= 1), slight: (1 < age_delta <= 5), moderate: (5 < age_delta <= 10), high: (10 < age_delta <= 20), severe: (20 < age_delta) {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER") {style="font-size: 16px;"}
+```{r, fig.width=20, fig.height=15, out.width="75%", fig.align = 'center'}
+labels <- y %>% distinct(sample_id, .keep_all = T) %>% count(abserror_classifier)
+
+labeller <- paste0(labels$abserror_classifier, ": n = ", labels$n)
+names(labeller) <- labels$abserror_classifier
+labeller <- as_labeller(labeller)
+
+data <- y %>% 
+  filter(
+    impact %noin% c("MODIFIER") &
+      dp > 99 & 
+      vaf > 0.02
+  )
+
+ggplot(
+  data,
+  aes(x = vaf,
+      fill = impact)
+) + 
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  ) +
+  geom_histogram(aes(y=..density..), position = "stack") + 
+  facet_wrap(~abserror_classifier, ncol = 2, labeller = labeller)
+```
+
+## VAF by binned error facet by abserror classifier/sample_id {style="font-size: 16px;"}
+#### minimal: (0 < age_delta <= 1), slight: (1 < age_delta <= 5), moderate: (5 < age_delta <= 10), high: (10 < age_delta <= 20), severe: (20 < age_delta) {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER") {style="font-size: 16px;"}
+```{r, fig.width=25, fig.height=15, out.width="75%", fig.align = 'center'}
+labels <- y %>% distinct(sample_id, .keep_all = T) %>% count(abserror_classifier)
+
+labeller <- paste0(labels$abserror_classifier, ": n = ", labels$n)
+names(labeller) <- labels$abserror_classifier
+labeller <- as_labeller(labeller)
+
+data <- y %>% 
+  filter(
+    impact %noin% c("MODIFIER") &
+      dp > 99 & 
+      vaf > 0.02
+  )
+
+ggplot(
+  data,
+  aes(x = vaf,
+      fill = impact)
+) + 
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  ) +
+  geom_histogram(aes(y=..density..), position = "stack") + 
+  facet_wrap(~abserror_classifier+sample_id)
+```
+
+## VAF by binned error facet by abserror classifier/gene {style="font-size: 16px;"}
+#### minimal: (0 < age_delta <= 1), slight: (1 < age_delta <= 5), moderate: (5 < age_delta <= 10), high: (10 < age_delta <= 20), severe: (20 < age_delta) {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER") {style="font-size: 16px;"}
+```{r, fig.width=25, fig.height=10, out.width="75%", fig.align = 'center'}
+labels <- y %>% distinct(sample_id, .keep_all = T) %>% count(abserror_classifier)
+
+labeller <- paste0(labels$abserror_classifier, ": n = ", labels$n)
+names(labeller) <- labels$abserror_classifier
+labeller <- as_labeller(labeller)
+
+data <- y %>% 
+  filter(
+    impact %noin% c("MODIFIER") &
+      dp > 99 & 
+      vaf > 0.02
+  )
+
+ggplot(
+  data,
+  aes(x = vaf,
+      fill = impact)
+) + 
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  ) +
+  geom_histogram(aes(y=..density..), position = "stack") + 
+  facet_grid(abserror_classifier~gene)
+```
+
+## Error of variants by impact {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER" gene != "CBL") {style="font-size: 16px;"}
+```{r, fig.width=10, fig.height=8, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene != "CBL" & dp > 99 & vaf > 0.02)
+
+p <- ggplot(
+  data, 
+  aes(x = impact, y = error, fill = impact),
+) +
+  geom_boxplot(alpha = .6) +
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  )
+
+p
+```
+
+## Abserror of variants by impact {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER" gene != "CBL") {style="font-size: 16px;"}
+```{r, fig.width=10, fig.height=8, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene != "CBL" & dp > 99 & vaf > 0.02)
+
+p <- ggplot(
+  data, 
+  aes(x = impact, y = abserror, fill = impact),
+) +
+  geom_boxplot(alpha = .6) +
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  )
+
+p
+```
+
+## CHIP relevant genes {style="font-size: 16px;"}
+<iframe width="780" height="600" src="/mnt/data/data_ap/14Dec2023_CHIP_Exploration/reports/NextPres/table.html"></iframe>
+
+## CHIP relevant mutations in DNMT3A, TET2, & ASXL1 per sample {style="font-size: 16px;"}
+#### filter: (dp > 99 & vaf > 0.02 & vaf < 0.4 impact != "MODIFIER" gene != "CBL") {style="font-size: 16px;"}
+::: panel-tabset
+### scatterplot by error
+```{r, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene %in% c("DNMT3A", "TET2", "ASXL1")) %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  dplyr::left_join(., y %>% select(sample_id, abserror, error, batch, abserror_classifier, error_classifier, age), 
+                   by = "sample_id") %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE")
+
+p <- ggplot(
+  data, 
+  aes(x = error, y = n, color = batch, custom = sample_id)
+) +
+  geom_point()
+
+p
+```
+
+### scatter plot by abserror
+```{r, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene %in% c("DNMT3A", "TET2", "ASXL1")) %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  dplyr::left_join(., y %>% select(sample_id, abserror, error, batch, abserror_classifier, error_classifier, age), 
+                   by = "sample_id") %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE")
+
+p <- ggplot(
+  data, 
+  aes(x = abserror, y = n, color = batch, custom = sample_id)
+) +
+  geom_point()
+
+p
+```
+:::
+
+## CHIP relevant mutations in DNMT3A, TET2, & ASXL1 per sample binned by error {style="font-size: 16px;"}
+#### filter: (dp > 99 & vaf > 0.02 & vaf < 0.4 impact != "MODIFIER") {style="font-size: 16px;"}
+::: panel-tabset
+### distribution of chip relevant variants
+```{r, fig.width=15, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene %in% c("DNMT3A", "TET2", "ASXL1")) %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  dplyr::left_join(., y %>% select(sample_id, abserror, error, batch, abserror_classifier, error_classifier, age), 
+                   by = c("sample_id")) %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE")
+
+p <- ggplot(data, aes(x = n)) + 
+  geom_histogram() +
+  scale_x_continuous(breaks = seq(0,12,1))
+
+p
+```
+
+### boxplot binned by error_classifier
+```{r, fig.width = 12, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene %in% c("DNMT3A", "TET2", "ASXL1")) %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  dplyr::left_join(., y %>% select(sample_id, abserror, error, batch, abserror_classifier, error_classifier, age), 
+                   by = "sample_id") %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE")
+
+
+p <- ggplot(
+  data, 
+  aes(x = factor(error_classifier, levels = levels(y$error_classifier)), y = n)
+) +
+  geom_boxplot() +
+  xlab("error_classifier") +
+  scale_y_continuous(breaks = seq(0,12,2)) +
+  ggeasy::easy_rotate_labels(angle = 30, side = "right")
+
+p
+```
+
+### transposed
+```{r, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene %in% c("DNMT3A", "TET2", "ASXL1")) %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  ungroup() %>%
+  dplyr::left_join(., y %>% select(sample_id, abserror, error, batch, abserror_classifier, error_classifier, age), 
+                   by = "sample_id") %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE") %>% 
+  mutate(bin = cut(n, breaks = c(0,2,4,6), include.lowest = TRUE))
+
+
+
+p <- ggplot(
+  data, 
+  aes(y = error, x = bin)
+) +
+  geom_boxplot()
+
+p
+```
+
+### boxplot binned by abserror_classifier
+```{r, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene %in% c("DNMT3A", "TET2", "ASXL1")) %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  dplyr::left_join(., y %>% select(sample_id, abserror, error, batch, abserror_classifier, error_classifier, age), 
+                   by = "sample_id") %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE")
+
+
+
+p <- ggplot(
+  data, 
+  aes(x = factor(abserror_classifier, levels = levels(y$abserror_classifier)), y = n)
+) +
+  geom_boxplot() +
+  xlab("abserror_classifier") +
+  scale_y_continuous(breaks = seq(0,12,2))
+
+p
+```
+
+### transposed
+```{r, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene %in% c("DNMT3A", "TET2", "ASXL1")) %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  ungroup() %>%
+  dplyr::left_join(., y %>% select(sample_id, abserror, error, batch, abserror_classifier, error_classifier, age), 
+                   by = "sample_id") %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE") %>% 
+  mutate(bin = cut(n, breaks = c(0,2,4,6), include.lowest = TRUE))
+
+
+p <- ggplot(
+  data, 
+  aes(y = abserror, x = bin)
+) +
+  geom_boxplot()
+
+p
+```
+
+### boxplot binned by age
+```{r, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene %in% c("DNMT3A", "TET2", "ASXL1")) %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  dplyr::left_join(., y %>% select(sample_id, abserror, error, batch, abserror_classifier, error_classifier, age), 
+                   by = "sample_id") %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE") %>% 
+  mutate(age_bin = cut(age, breaks = c(18,40,60,100), include.lowest = TRUE))
+
+
+
+p <- ggplot(
+  data, 
+  aes(x = age_bin, y = n)
+) +
+  geom_boxplot() +
+  scale_y_continuous(breaks = seq(0,12,2))
+
+p
+```
+
+### transposed
+```{r, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene %in% c("DNMT3A", "TET2", "ASXL1")) %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  ungroup() %>%
+  dplyr::left_join(., y %>% select(sample_id, abserror, error, batch, abserror_classifier, error_classifier, age), 
+                   by = "sample_id") %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE") %>% 
+  mutate(bin = cut(n, breaks = c(0,2,4,6), include.lowest = TRUE))
+
+
+
+p <- ggplot(
+  data, 
+  aes(y = age, x = bin)
+) +
+  geom_boxplot()
+
+p
+```
+:::

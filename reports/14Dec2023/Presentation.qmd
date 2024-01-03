@@ -1,0 +1,231 @@
+---
+title: "CHIP Data Exploration"
+execute:
+  echo: false
+author: Anthony Pompetti
+date: "12-14-2023"
+date-format: long
+format: 
+  revealjs:
+    theme: simple
+    logo: ../Coriell_Logo.png
+    embed-resources: true
+    view-distance: 20
+---
+
+```{r setup, include=FALSE}
+library(data.table)
+library(tidyverse)
+library(plotly)
+here::i_am(".here")
+y <- readRDS(here::here("results/rds/CHIP_sample_table.rds"))
+`%noin%` = Negate(`%in%`)
+```
+
+```{css cssFormat, echo=FALSE, include=FALSE}
+.panel-tabset .nav-item {
+  font-size: 3px
+}
+```
+
+## Batches included in analysis
+```{r}
+y$batch %>% unique
+```
+
+## VAF by binned error {style="font-size: 16px;"}
+#### minimal: (0 < age_delta <= 1), slight: (1 < age_delta <= 5), moderate: (5 < age_delta <= 10), high: (10 < age_delta <= 20), severe: (20 < age_delta) {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER" gene != "CBL") {style="font-size: 16px;"}
+
+:::panel-tabset
+### facet by error classifier
+```{r, fig.width=20, fig.height=15, out.width="70%", fig.align = 'center'}
+labels <- y %>% distinct(sample_id, .keep_all = T) %>% count(error_classifier)
+
+labeller <- paste0(labels$error_classifier, ": n = ", labels$n)
+names(labeller) <- labels$error_classifier
+labeller <- as_labeller(labeller)
+
+data <- y %>% 
+  filter(
+    impact %noin% c("MODIFIER") &
+      gene != "CBL" &
+      dp > 99 & 
+      vaf > 0.02
+  )
+
+ggplot(
+  data,
+  aes(x = vaf,
+      fill = impact)
+) + 
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  ) +
+  geom_histogram(aes(y=..density..), position = "stack") + 
+  facet_wrap(~error_classifier, ncol = 2, labeller = labeller)
+```
+
+### facet by abserror classifier
+```{r, fig.width=20, fig.height=15, out.width="70%", fig.align = 'center'}
+labels <- y %>% distinct(sample_id, .keep_all = T) %>% count(abserror_classifier)
+
+labeller <- paste0(labels$abserror_classifier, ": n = ", labels$n)
+names(labeller) <- labels$abserror_classifier
+labeller <- as_labeller(labeller)
+
+data <- y %>% 
+  filter(
+    impact %noin% c("MODIFIER") &
+      gene != "CBL" &
+      dp > 99 & 
+      vaf > 0.02
+  )
+
+ggplot(
+  data,
+  aes(x = vaf,
+      fill = impact)
+) + 
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  ) +
+  geom_histogram(aes(y=..density..), position = "stack") + 
+  facet_wrap(~abserror_classifier, ncol = 2, labeller = labeller)
+```
+:::
+
+## Error of variants by impact {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER" gene != "CBL") {style="font-size: 16px;"}
+```{r, fig.width=10, fig.height=8, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene != "CBL" & dp > 99 & vaf > 0.02)
+
+p <- ggplot(
+  data, 
+  aes(x = impact, y = error, fill = impact),
+) +
+  geom_boxplot(alpha = .6) +
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  )
+
+p
+```
+
+## Abserror of variants by impact {style="font-size: 16px;"}
+##### filter: (dp > 99 vaf > 0.02 impact != "MODIFIER" gene != "CBL") {style="font-size: 16px;"}
+```{r, fig.width=10, fig.height=8, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene != "CBL" & dp > 99 & vaf > 0.02)
+
+p <- ggplot(
+  data, 
+  aes(x = impact, y = abserror, fill = impact),
+) +
+  geom_boxplot(alpha = .6) +
+  scale_fill_manual(
+    values = c(HIGH = "red2", MODERATE = "purple2", LOW ="cyan2", MODIFIER = "khaki")
+  )
+
+p
+```
+
+## Chip relevant variants per sample {style="font-size: 16px;"}
+#### filter: (dp > 99 & vaf > 0.02 & vaf < 0.4 impact != "MODIFIER" gene != "CBL") {style="font-size: 16px;"}
+::: panel-tabset
+### scatterplot by error
+```{r, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene != "CBL") %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  dplyr::left_join(., y %>% 
+                     select(sample_id, abserror, error, batch, abserror_classifier, error_classifier), 
+                   by = "sample_id") %>%
+  select(sample_id, chip_relevant, n, abserror, error, batch, abserror_classifier, error_classifier) %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE")
+
+p <- ggplot(
+  data, 
+  aes(x = error, y = n, color = batch, custom = sample_id)
+) +
+  geom_point()
+
+p
+```
+
+### scatter plot by abserror
+```{r, fig.align = 'center'}
+data <- y %>% 
+  filter(impact %noin% c("MODIFIER") & gene != "CBL") %>%
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  dplyr::left_join(., y %>% 
+                     select(sample_id, abserror, batch, abserror_classifier, error_classifier), 
+                   by = "sample_id") %>%
+  select(sample_id, chip_relevant, n, abserror, batch, abserror_classifier, error_classifier) %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE")
+
+p <- ggplot(
+  data, 
+  aes(x = abserror, y = n, color = batch, custom = sample_id)
+) +
+  geom_point()
+
+p
+```
+:::
+
+## Chip relevant variants per sample binned by error {style="font-size: 16px;"}
+#### filter: (dp > 99 & vaf > 0.02 & vaf < 0.4 impact != "MODIFIER" gene != "CBL") {style="font-size: 16px;"}
+::: panel-tabset
+### boxplot binned by error_classifier
+```{r, fig.width=15, fig.align = 'center'}
+data <- y %>% 
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  dplyr::left_join(., y %>% 
+                     select(sample_id, abserror, batch, abserror_classifier, error_classifier), 
+                   by = "sample_id") %>%
+  select(sample_id, chip_relevant, n, abserror, batch, abserror_classifier, error_classifier) %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE")
+
+
+p <- ggplot(
+  data, 
+  aes(x = factor(error_classifier, levels = levels(y$error_classifier)), y = n)
+) +
+  geom_boxplot() +
+  xlab("error_classifier")
+
+p
+```
+
+### boxplot binned by abserror_classifier
+```{r, fig.align = 'center'}
+data <- y %>% 
+  dplyr::group_by(sample_id, chip_relevant, .drop = FALSE) %>% 
+  count() %>%
+  dplyr::left_join(., y %>% 
+                     select(sample_id, abserror, batch, abserror_classifier, error_classifier), 
+                   by = "sample_id") %>%
+  select(sample_id, chip_relevant, n, abserror, batch, abserror_classifier, error_classifier) %>%
+  distinct(sample_id, chip_relevant, .keep_all = TRUE) %>%
+  filter(chip_relevant == "TRUE")
+
+
+
+p <- ggplot(
+  data, 
+  aes(x = factor(abserror_classifier, levels = levels(y$abserror_classifier)), y = n)
+) +
+  geom_boxplot() +
+  xlab("abserror_classifier")
+
+p
+```
+:::
